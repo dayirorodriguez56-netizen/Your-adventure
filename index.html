@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0d0d1a">
+  <title>Tu Aventura – D&D Personalizable</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ======================================================
+       HEADER
+       ====================================================== -->
+  <header id="header">
+    <span id="header-logo">🐉 Tu Aventura</span>
+    <span id="header-subtitle">D&D Personalizable</span>
+
+    <nav class="tabs-nav">
+      <button class="tab-btn" data-tab="board"      onclick="UI.switchTab('board')">🗺️ Tablero</button>
+      <button class="tab-btn" data-tab="dm"         onclick="UI.switchTab('dm')">🎭 Amo del Calabozo</button>
+      <button class="tab-btn" data-tab="characters" onclick="UI.switchTab('characters')">🧙 Personajes</button>
+      <button class="tab-btn" data-tab="classes"    onclick="UI.switchTab('classes')">📜 Clases</button>
+      <button class="tab-btn" data-tab="abilities"  onclick="UI.switchTab('abilities')">✨ Habilidades</button>
+      <button class="tab-btn" data-tab="monsters"   onclick="UI.switchTab('monsters')">👹 Monstruos</button>
+      <button class="tab-btn" data-tab="items"      onclick="UI.switchTab('items')">💎 Objetos</button>
+    </nav>
+
+    <div class="header-actions">
+      <button id="online-status-badge" class="online-badge off" onclick="Network.openOnlineModal()">🌐 Jugar Online</button>
+      <button class="header-btn" onclick="GameState.save(); UI.dmLog('💾 Partida guardada.')">💾 Guardar</button>
+      <button class="header-btn danger" onclick="if(confirm('¿Reiniciar todo el juego? Se perderán todos los datos.')) GameState.reset()">🗑️ Reiniciar</button>
+    </div>
+  </header>
+
+  <!-- ======================================================
+       MAIN
+       ====================================================== -->
+  <div id="main">
+
+    <!-- ==================== TABLERO ==================== -->
+    <div id="tab-board" class="tab-content">
+      <div id="board-area">
+        <!-- Barra de Conciencia del DM -->
+        <div id="dm-status-bar">
+          <div class="dm-hud-avatar" id="dm-hud-avatar" onclick="UI.switchTab('dm')" title="Ver al Amo del Calabozo en su Trono">👁️</div>
+          <div class="dm-hud-info">
+            <div class="dm-hud-name-row">
+              <strong id="dm-hud-name">Malakor el Vigilante</strong>
+              <span class="dm-mood-badge" id="dm-hud-mood">👁️ Vigilante</span>
+              <span class="dm-threat-badge" id="dm-hud-threat">Dificultad: Medio</span>
+              <span class="dm-campaign-badge" id="dm-hud-act">Acto 1: La Cripta</span>
+            </div>
+            <div class="dm-meters">
+              <div class="dm-meter-wrap" title="Ira del DM: Sube cuando lo desafían o el combate es demasiado fácil">
+                <span>Ira:</span>
+                <div class="dm-meter-bar"><div id="dm-meter-wrath" style="width:25%"></div></div>
+              </div>
+              <div class="dm-meter-wrap" title="Piedad del DM: Sube ante súplicas sinceras o peligro mortal">
+                <span>Piedad:</span>
+                <div class="dm-meter-bar pity"><div id="dm-meter-pity" style="width:35%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="dm-hud-actions">
+            <button class="btn btn-sm btn-challenge" onclick="UI.quickPlayerPrompt('¡Esto es pan comido! ¡Hazlo más difícil si te atreves!')" title="Desafiar al DM a hacer el juego más difícil">⚡ Desafiar al DM</button>
+            <button class="btn btn-sm btn-plea" onclick="UI.quickPlayerPrompt('¡Amo del Calabozo, ten piedad de nosotros y ayúdanos!')" title="Pedir clemencia o ayuda al DM">🙏 Pedir Piedad</button>
+            <button class="btn btn-sm btn-primary" onclick="UI.openDMSideTab()" title="Abrir chat lateral con el DM">💬 Hablar</button>
+          </div>
+        </div>
+
+        <!-- Toolbar del tablero -->
+        <div id="board-toolbar">
+          <!-- Herramientas -->
+          <button class="board-tool-btn" data-tool="select" onclick="UI.setTool('select')">🖱️ Seleccionar</button>
+          <button class="board-tool-btn" data-tool="erase"  onclick="UI.setTool('erase')">🧹 Borrar</button>
+          <button class="board-tool-btn" data-tool="terrain" onclick="UI.setTool('terrain')">🎨 Pintar terreno</button>
+          <div id="place-info"></div>
+
+          <span style="flex:1"></span>
+
+          <!-- Combate -->
+          <button class="btn btn-primary btn-sm" onclick="CombatEngine.startCombat()">⚔️ Iniciar Combate</button>
+
+          <!-- Mapas rápidos -->
+          <select id="map-gen-sel" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:5px;border-radius:6px;font-size:0.82rem;">
+            <option value="">Generar mapa...</option>
+            <option value="dungeon">🏚️ Mazmorra</option>
+            <option value="forest">🌲 Bosque</option>
+            <option value="desert">🏜️ Desierto</option>
+          </select>
+          <button class="board-tool-btn" onclick="BoardEngine.generateRandomMap(document.getElementById('map-gen-sel').value); UI.dmLog('🗺️ Mapa generado.')">⚡ Generar</button>
+          <button class="board-tool-btn" onclick="if(confirm('¿Limpiar tablero?')) { BoardEngine.clearBoard(); UI.dmLog('🧹 Tablero limpiado.'); }">🗑️ Limpiar</button>
+
+          <!-- Tamaño -->
+          <div class="board-settings">
+            <span style="color:var(--text-muted);font-size:0.78rem;">Tamaño:</span>
+            <input type="number" id="board-cols" value="20" min="5" max="50">✕
+            <input type="number" id="board-rows" value="15" min="5" max="40">
+            <button class="board-tool-btn" onclick="UI.applyBoardSettings()">↩️</button>
+          </div>
+        </div>
+
+        <!-- Canvas del tablero -->
+        <div id="canvas-container">
+          <canvas id="board-canvas"></canvas>
+
+          <!-- Controles Flotantes para Celulares y Zoom -->
+          <div class="mobile-board-hud">
+            <button class="mobile-hud-btn" onclick="BoardEngine.zoomIn()" title="Acercar zoom">➕</button>
+            <button class="mobile-hud-btn" onclick="BoardEngine.zoomOut()" title="Alejar zoom">➖</button>
+            <button class="mobile-hud-btn" onclick="BoardEngine.resetZoom()" title="Restablecer zoom">⊙</button>
+            <button class="mobile-hud-btn panel-toggle" onclick="UI.toggleMobileSidePanel()" title="Abrir/Cerrar panel de paleta">📦 Panel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel lateral del tablero -->
+      <div id="board-side-panel">
+        <!-- Tabs del panel lateral -->
+        <div id="sidebar-tabs">
+          <button class="sidebar-tab-btn" onclick="UI.switchSideTab('dm')" id="side-tab-dm" style="color:var(--gold);font-weight:bold;">🎭 DM</button>
+          <button class="sidebar-tab-btn active" onclick="UI.switchSideTab('palette')" id="side-tab-palette">📦 Paleta</button>
+          <button class="sidebar-tab-btn" onclick="UI.switchSideTab('terrain')" id="side-tab-terrain">🎨 Terreno</button>
+          <button class="sidebar-tab-btn" onclick="UI.switchSideTab('detail')" id="side-tab-detail">📋 Detalle</button>
+          <button class="sidebar-tab-btn" onclick="UI.switchSideTab('combat')" id="side-tab-combat">⚔️ Combate</button>
+          <button class="sidebar-tab-btn" onclick="UI.switchSideTab('dice')" id="side-tab-dice">🎲 Dados</button>
+          <button class="sidebar-tab-btn mobile-close-btn" onclick="UI.toggleMobileSidePanel()" title="Cerrar panel en celular" style="margin-left:auto;color:#e74c3c;font-weight:bold;">✕</button>
+        </div>
+
+        <!-- PALETA DE ENTIDADES -->
+        <div id="side-palette" class="sidebar-content sidebar-panel active">
+          <h4 style="color:var(--accent-light);font-size:0.8rem;margin-bottom:8px;text-transform:uppercase;">Personajes</h4>
+          <div id="palette-characters" class="palette-list">
+            <p class="empty-state">Sin personajes creados.</p>
+          </div>
+          <h4 style="color:#e74c3c;font-size:0.8rem;margin:10px 0 8px;text-transform:uppercase;">Monstruos</h4>
+          <div id="palette-monsters" class="palette-list">
+            <p class="empty-state">Sin monstruos creados.</p>
+          </div>
+          <h4 style="color:var(--gold);font-size:0.8rem;margin:10px 0 8px;text-transform:uppercase;">Objetos / Cofres</h4>
+          <div id="palette-items" class="palette-list">
+            <p class="empty-state">Sin objetos creados.</p>
+          </div>
+          <div style="margin-top:10px;">
+            <h4 style="color:var(--text-muted);font-size:0.78rem;text-transform:uppercase;margin-bottom:6px;">Objetos especiales</h4>
+            <div class="palette-list">
+              <div class="palette-item" onclick="UI.placeSpecial('chest')">📦 Cofre del tesoro</div>
+              <div class="palette-item" onclick="UI.placeSpecial('trap')">⚠️ Trampa</div>
+              <div class="palette-item" onclick="UI.placeSpecial('door')">🚪 Puerta</div>
+              <div class="palette-item" onclick="UI.placeSpecial('npc')">👤 NPC</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TERRENO -->
+        <div id="side-terrain" class="sidebar-content sidebar-panel">
+          <h4 style="color:var(--accent-light);font-size:0.8rem;margin-bottom:10px;text-transform:uppercase;">Tipo de terreno</h4>
+          <div class="terrain-grid" id="terrain-grid"></div>
+          <div style="margin-top:12px;">
+            <p style="font-size:0.78rem;color:var(--text-muted);">Selecciona un terreno y usa la herramienta "Pintar terreno".</p>
+          </div>
+        </div>
+
+        <!-- DETALLE -->
+        <div id="side-detail" class="sidebar-content sidebar-panel">
+          <div id="entity-detail">
+            <p class="empty-state">Haz clic en una entidad del tablero para ver su detalle.</p>
+          </div>
+        </div>
+
+        <!-- COMBATE -->
+        <div id="side-combat" class="sidebar-content sidebar-panel">
+          <div id="combat-panel">
+            <p class="empty-state">Sin combate activo. Presiona "Iniciar Combate".</p>
+          </div>
+        </div>
+
+        <!-- DADOS -->
+        <div id="side-dice" class="sidebar-content sidebar-panel">
+          <h4 style="color:var(--gold);font-size:0.85rem;margin-bottom:10px;">🎲 Lanzador de Dados</h4>
+          <div class="dice-roller">
+            <input type="text" id="dice-expr" value="1d20" style="width:100px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 8px;border-radius:6px;">
+            <button class="btn btn-primary btn-sm" onclick="UI.rollCustomDice()">Tirar</button>
+          </div>
+          <div id="dice-result" class="dice-result" style="margin-top:8px;">—</div>
+          <div class="quick-dice">
+            <button class="dice-btn" onclick="UI.quickDice('1d4')">d4</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d6')">d6</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d8')">d8</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d10')">d10</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d12')">d12</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d20')">d20</button>
+            <button class="dice-btn" onclick="UI.quickDice('1d100')">d100</button>
+            <button class="dice-btn" onclick="UI.quickDice('2d6')">2d6</button>
+            <button class="dice-btn" onclick="UI.quickDice('4d6')">4d6</button>
+          </div>
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+            <h4 style="color:var(--gold);font-size:0.82rem;margin-bottom:8px;">Chequeo de stat</h4>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <select id="check-stat-sel" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:5px;border-radius:6px;font-size:0.8rem;">
+                <option value="fuerza">Fuerza</option>
+                <option value="destreza">Destreza</option>
+                <option value="constitucion">Constitución</option>
+                <option value="inteligencia">Inteligencia</option>
+                <option value="sabiduria">Sabiduría</option>
+                <option value="carisma">Carisma</option>
+              </select>
+              <select id="check-entity-sel" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:5px;border-radius:6px;font-size:0.8rem;flex:1;">
+                <option value="">Entidad...</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="UI.rollStatCheck()">Tirar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL LATERAL DEL DM -->
+        <div id="side-dm" class="sidebar-content sidebar-panel">
+          <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+            <span style="font-size:1.6rem;">👁️</span>
+            <div>
+              <strong style="font-size:0.85rem;color:#fff;">Malakor</strong>
+              <div id="side-dm-mood" style="font-size:0.75rem;font-weight:bold;color:var(--accent-light);">👁️ Vigilante</div>
+            </div>
+            <button class="btn btn-sm" onclick="UI.switchTab('dm')" style="margin-left:auto;font-size:0.72rem;">Ver Trono ↗</button>
+          </div>
+          <div class="side-dm-chat-mini" id="side-dm-chat-stream">
+            <p class="empty-state" style="font-size:0.75rem;">Sin mensajes aún.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;gap:4px;">
+              <input type="text" id="side-dm-input" placeholder="Habla o desafía al DM..." style="flex:1;background:var(--bg-primary);border:1px solid var(--border);color:#fff;padding:6px;border-radius:6px;font-size:0.8rem;" onkeydown="if(event.key==='Enter') UI.sendPlayerMessage(this.value)">
+              <button class="btn btn-primary btn-sm" onclick="UI.sendPlayerMessage()">Enviar</button>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¡Esto es pan comido! ¡Hazlo más difícil si te atreves!')">⚡ ¡Desafiar!</button>
+              <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¡Amo del Calabozo, apiádate y danos una ayuda!')">🙏 ¡Piedad!</button>
+              <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('Danos un cofre con botín')">📦 Botín</button>
+              <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('Lanza los dados del destino')">🎲 Fortuna</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- DM LOG en la base -->
+        <div style="border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;">
+            <span style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Registro DM</span>
+            <button class="btn-icon" onclick="UI.clearLog()" title="Limpiar log">🗑️</button>
+          </div>
+          <div id="dm-log" style="height:180px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== AMO DEL CALABOZO (DM) ==================== -->
+    <div id="tab-dm" class="tab-content dm-layout">
+      <!-- Columna Izquierda: Trono, Pensamientos y Control de Campaña -->
+      <div class="dm-throne-col">
+        <div class="dm-throne-card">
+          <div class="dm-throne-avatar" id="dm-throne-avatar">👁️</div>
+          <div class="dm-throne-name" id="dm-throne-name">Malakor el Vigilante</div>
+          <div class="dm-throne-title">Amo del Calabozo Supremo</div>
+          <div id="dm-throne-mood" style="font-weight:700;font-size:0.85rem;color:var(--accent-light);margin-bottom:8px;">👁️ Humor: Vigilante</div>
+          
+          <div class="dm-stats-grid">
+            <div class="dm-stat-box">
+              <span>Ira del DM</span>
+              <strong id="dm-stat-wrath" style="color:#e74c3c;">25%</strong>
+            </div>
+            <div class="dm-stat-box">
+              <span>Piedad del DM</span>
+              <strong id="dm-stat-pity" style="color:#2ecc71;">35%</strong>
+            </div>
+            <div class="dm-stat-box">
+              <span>Nivel de Desafío</span>
+              <strong id="dm-stat-threat" style="color:var(--gold);">Medio</strong>
+            </div>
+            <div class="dm-stat-box">
+              <span>Autonomía</span>
+              <strong id="dm-stat-autonomy" style="color:#3498db;">Activa ✅</strong>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:6px;justify-content:center;">
+            <button class="btn btn-sm btn-challenge" onclick="UI.quickPlayerPrompt('¡Esto es pan comido! ¡Hazlo más difícil si te atreves!')">⚡ Desafiar al DM</button>
+            <button class="btn btn-sm btn-plea" onclick="UI.quickPlayerPrompt('¡Amo del Calabozo, ten piedad de nosotros y ayúdanos!')">🙏 Pedir Piedad</button>
+          </div>
+        </div>
+
+        <!-- Campaña Actual del DM -->
+        <div style="background:#120f26;border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <h4 style="color:var(--gold);font-size:0.85rem;text-transform:uppercase;">📜 Campaña: <span id="dm-camp-act">Acto 1</span></h4>
+            <button class="btn btn-sm btn-secondary" onclick="UI.advanceCampaign()">Avanzar Acto ⏩</button>
+          </div>
+          <h3 id="dm-camp-title" style="font-size:0.95rem;color:#fff;margin-bottom:4px;">La Cripta de los Lamentos Olvidados</h3>
+          <p id="dm-camp-obj" style="font-size:0.82rem;color:#ccc;margin-bottom:8px;">Sobrevivid al asedio y desentrañad el misterio del templo.</p>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-style:italic;margin-bottom:8px;" id="dm-camp-atmos">Una niebla púrpura gélida repta entre las losas de piedra mohosa.</div>
+          <div style="background:rgba(0,0,0,0.3);border:1px dashed var(--accent);border-radius:4px;padding:6px;font-size:0.75rem;color:var(--accent-light);">
+            <strong>Regla Especial:</strong> <span id="dm-camp-rule">Ninguna regla especial activa.</span>
+          </div>
+        </div>
+
+        <!-- Pensamientos Secretos del DM -->
+        <div class="dm-thoughts-section">
+          <div class="dm-thoughts-header">
+            <h4>🧠 Monólogo Interno del DM</h4>
+            <span style="font-size:0.68rem;color:var(--text-muted);">Decisiones en vivo</span>
+          </div>
+          <div class="dm-thought-list" id="dm-thought-list">
+            <p class="empty-state">El DM medita sus siguientes movimientos...</p>
+          </div>
+        </div>
+
+        <!-- Controles y Juicio Autónomo -->
+        <div style="background:#100d24;border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;">
+          <h4 style="color:var(--accent-light);font-size:0.8rem;text-transform:uppercase;margin-bottom:10px;">⚙️ Juicio y Autonomía</h4>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:0.82rem;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="dm-toggle-autonomy" checked onchange="UI.toggleDMAutonomy(this.checked)">
+              <span>Intervenciones Autónomas del DM</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>Dificultad Base:</span>
+              <select id="dm-sel-difficulty" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);color:#fff;padding:4px 6px;border-radius:4px;" onchange="UI.setDMDifficulty(this.value)">
+                <option value="Fácil">Fácil (DM benévolo)</option>
+                <option value="Medio" selected>Medio (DM balanceado)</option>
+                <option value="Difícil">Difícil (DM exigente)</option>
+                <option value="Letal">Letal (DM cruel)</option>
+                <option value="Pesadilla">Pesadilla (DM sádico)</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="UI.forceDMJudgment()" style="width:100%;">⚡ Forzar juicio del DM ahora</button>
+          </div>
+
+          <!-- Opcional: Gemini LLM API Key -->
+          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+            <details style="font-size:0.78rem;">
+              <summary style="cursor:pointer;color:var(--text-muted);margin-bottom:6px;">🔮 Conexión IA Gemini (Opcional)</summary>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+                <input type="password" id="dm-api-key" placeholder="API Key de Google AI Studio / Gemini" style="background:var(--bg-primary);border:1px solid var(--border);color:#fff;padding:5px 8px;border-radius:4px;font-size:0.75rem;">
+                <label style="display:flex;align-items:center;gap:6px;">
+                  <input type="checkbox" id="dm-toggle-llm">
+                  <span>Usar modelo Gemini 1.5 para diálogos</span>
+                </label>
+                <button class="btn btn-sm btn-secondary" onclick="UI.saveDMSettings()">Guardar Clave</button>
+                <small style="color:var(--text-muted);">Sin clave, el DM funciona 100% con su motor de conciencia nativo integrado.</small>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Diálogo y Chat Interactivo con el DM -->
+      <div class="dm-chat-col">
+        <div class="dm-chat-header">
+          <div>
+            <h3 style="font-size:1.05rem;color:#fff;">💬 Comunión con el Amo del Calabozo</h3>
+            <small style="color:var(--text-secondary);">Habla, suplica favores o desafíalo directamente. El DM reaccionará según su humor.</small>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="UI.switchTab('board')">🗺️ Volver al Tablero</button>
+        </div>
+
+        <div class="dm-chat-stream" id="dm-chat-stream">
+          <p class="empty-state">El canal astral está abierto. Habla con el Amo del Calabozo.</p>
+        </div>
+
+        <div class="dm-chat-input-bar">
+          <div class="dm-quick-prompts">
+            <span style="font-size:0.72rem;color:var(--text-muted);margin-right:4px;display:flex;align-items:center;">Prontos:</span>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¡Esto es pan comido! ¡Hazlo más difícil si te atreves!')">⚡ ¡Te desafío a más!</button>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¡Amo del Calabozo, apiádate de nosotros!')">🙏 ¡Pedir clemencia!</button>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('Concédenos un cofre con botín y recompensas')">📦 Pedir botín</button>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¿Cuál es nuestra misión y qué peligros acechan?')">📜 Preguntar por la historia</button>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('¡Lanza el dado del destino para decidir nuestra suerte!')">🎲 Prueba de dados</button>
+            <button class="quick-prompt-btn" onclick="UI.quickPlayerPrompt('Alabado seas, sabio y magnánimo Amo del Calabozo')">✨ Adular al DM</button>
+          </div>
+
+          <div class="dm-input-row">
+            <input type="text" id="dm-chat-input" placeholder="Escribe un mensaje al Amo del Calabozo... (o rétalo a ponerlo más difícil)" onkeydown="if(event.key==='Enter') UI.sendPlayerMessage(this.value)">
+            <button class="btn btn-primary" onclick="UI.sendPlayerMessage()">Enviar Mensaje</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PERSONAJES ==================== -->
+    <div id="tab-characters" class="tab-content list-tab">
+      <div class="list-header">
+        <h2>🧙 Personajes</h2>
+        <button class="btn btn-primary" onclick="UI.openCharacterModal()">➕ Nuevo Personaje</button>
+      </div>
+      <div class="list-body" id="character-list">
+        <p class="empty-state">No hay personajes. ¡Crea el primero!</p>
+      </div>
+    </div>
+
+    <!-- ==================== CLASES ==================== -->
+    <div id="tab-classes" class="tab-content list-tab">
+      <div class="list-header">
+        <h2>📜 Clases Personalizadas</h2>
+        <button class="btn btn-primary" onclick="UI.openClassModal()">➕ Nueva Clase</button>
+      </div>
+      <div class="list-body" id="class-list">
+        <p class="empty-state">No hay clases. ¡Crea la primera!</p>
+      </div>
+    </div>
+
+    <!-- ==================== HABILIDADES ==================== -->
+    <div id="tab-abilities" class="tab-content list-tab">
+      <div class="list-header">
+        <h2>✨ Habilidades Personalizadas</h2>
+        <button class="btn btn-primary" onclick="UI.openAbilityModal()">➕ Nueva Habilidad</button>
+      </div>
+      <div class="list-body" id="ability-list">
+        <p class="empty-state">No hay habilidades. ¡Crea la primera!</p>
+      </div>
+    </div>
+
+    <!-- ==================== MONSTRUOS ==================== -->
+    <div id="tab-monsters" class="tab-content list-tab">
+      <div class="list-header">
+        <h2>👹 Monstruos</h2>
+        <button class="btn btn-primary" onclick="UI.openMonsterModal()">➕ Nuevo Monstruo</button>
+      </div>
+      <div class="list-body" id="monster-list">
+        <p class="empty-state">No hay monstruos. ¡Crea el primero!</p>
+      </div>
+    </div>
+
+    <!-- ==================== OBJETOS ==================== -->
+    <div id="tab-items" class="tab-content list-tab">
+      <div class="list-header">
+        <h2>💎 Objetos y Cofres</h2>
+        <button class="btn btn-primary" onclick="UI.openItemModal()">➕ Nuevo Objeto</button>
+      </div>
+      <div class="list-body" id="item-list">
+        <p class="empty-state">No hay objetos. ¡Crea el primero!</p>
+      </div>
+    </div>
+
+    <!-- ==================== SIDEBAR GLOBAL ==================== -->
+    <!-- (Oculto en mobile, usado para el log global) -->
+  </div><!-- #main -->
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     MODAL - CLASE
+     ============================================================ -->
+<div id="modal-class" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="class-modal-title">Nueva Clase</h2>
+      <button class="btn-icon" onclick="UI.closeClassModal()">✕</button>
+    </div>
+    <input type="hidden" id="class-id-hidden">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre de la clase</label>
+        <input type="text" id="class-name" placeholder="ej: Paladín de las Sombras">
+      </div>
+      <div class="form-group">
+        <label>Icono (emoji)</label>
+        <input type="text" id="class-icon" value="⚔️" maxlength="4" style="text-align:center;font-size:1.5rem;">
+      </div>
+      <div class="form-group">
+        <label>Dado de Golpe</label>
+        <select id="class-hitdie">
+          <option value="d4">d4 (Mago)</option>
+          <option value="d6">d6 (Pícaro)</option>
+          <option value="d8" selected>d8 (Clérigo)</option>
+          <option value="d10">d10 (Luchador)</option>
+          <option value="d12">d12 (Bárbaro)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stat Principal</label>
+        <select id="class-primary">
+          <option value="fuerza">Fuerza</option>
+          <option value="destreza">Destreza</option>
+          <option value="constitucion">Constitución</option>
+          <option value="inteligencia">Inteligencia</option>
+          <option value="sabiduria">Sabiduría</option>
+          <option value="carisma">Carisma</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Competencia en Armadura</label>
+        <select id="class-armor">
+          <option value="ninguna">Ninguna</option>
+          <option value="ligera">Ligera</option>
+          <option value="media">Media</option>
+          <option value="pesada">Pesada</option>
+          <option value="todas">Todas + Escudos</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tirada de Salvación principal</label>
+        <select id="class-save">
+          <option value="fuerza">Fuerza</option>
+          <option value="destreza">Destreza</option>
+          <option value="constitucion">Constitución</option>
+          <option value="inteligencia">Inteligencia</option>
+          <option value="sabiduria">Sabiduría</option>
+          <option value="carisma">Carisma</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label>Descripción</label>
+        <textarea id="class-desc" placeholder="Describe la clase, su lore, origen..."></textarea>
+      </div>
+      <div class="form-group form-full">
+        <label>Características de clase (una por línea)</label>
+        <textarea id="class-features" placeholder="Ej:&#10;Nivel 1: Golpe Divino&#10;Nivel 3: Aura Protectora&#10;Nivel 5: Ataque Extra"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeClassModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="UI.saveClass()">💾 Guardar Clase</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - HABILIDAD
+     ============================================================ -->
+<div id="modal-ability" class="modal-overlay">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-header">
+      <h2 id="ability-modal-title">Nueva Habilidad</h2>
+      <button class="btn-icon" onclick="UI.closeAbilityModal()">✕</button>
+    </div>
+    <input type="hidden" id="ability-id-hidden">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="ability-name" placeholder="ej: Explosión Arcana">
+      </div>
+      <div class="form-group">
+        <label>Icono (emoji)</label>
+        <input type="text" id="ability-icon" value="✨" maxlength="4" style="text-align:center;font-size:1.5rem;">
+      </div>
+      <div class="form-group">
+        <label>Rango</label>
+        <select id="ability-range">
+          <option value="self">Uno mismo</option>
+          <option value="touch">Toque</option>
+          <option value="5ft">5 pies (1 casilla)</option>
+          <option value="30ft" selected>30 pies (6 casillas)</option>
+          <option value="60ft">60 pies (12 casillas)</option>
+          <option value="120ft">120 pies (24 casillas)</option>
+          <option value="area30ft">Área 30 pies</option>
+          <option value="area60ft">Área 60 pies</option>
+          <option value="line">Línea</option>
+          <option value="cone">Cono</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Coste de usos</label>
+        <input type="number" id="ability-cost" value="1" min="0" max="99">
+      </div>
+      <div class="form-group form-full">
+        <label>Descripción</label>
+        <textarea id="ability-desc" placeholder="Describe la habilidad y cómo funciona..."></textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>
+        ⚡ Efectos
+        <button class="btn btn-sm btn-primary" onclick="UI.addEffect()">➕ Agregar efecto</button>
+      </h4>
+      <div id="effects-list">
+        <p class="empty-state">Sin efectos. Agrega uno.</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeAbilityModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="UI.saveAbility()">💾 Guardar Habilidad</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - PERSONAJE
+     ============================================================ -->
+<div id="modal-character" class="modal-overlay">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-header">
+      <h2 id="char-modal-title">Nuevo Personaje</h2>
+      <button class="btn-icon" onclick="UI.closeCharacterModal()">✕</button>
+    </div>
+    <input type="hidden" id="char-id-hidden">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del personaje</label>
+        <input type="text" id="char-name" placeholder="ej: Aldric el Valiente">
+      </div>
+      <div class="form-group">
+        <label>Nombre del jugador</label>
+        <input type="text" id="char-player" placeholder="Nombre real del jugador">
+      </div>
+      <div class="form-group">
+        <label>Icono (emoji)</label>
+        <input type="text" id="char-icon" value="🧙" maxlength="4" style="text-align:center;font-size:1.5rem;">
+      </div>
+      <div class="form-group">
+        <label>Raza</label>
+        <input type="text" id="char-race" value="Humano" list="races-list">
+        <datalist id="races-list">
+          <option value="Humano"><option value="Elfo"><option value="Elfo Oscuro">
+          <option value="Enano"><option value="Halfling"><option value="Gnomo">
+          <option value="Semiorco"><option value="Tiefling"><option value="Aasimar">
+          <option value="Draconido"><option value="Genasi"><option value="Tritón">
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label>Clase</label>
+        <select id="char-class-sel" class="class-select">
+          <option value="">Sin clase</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nivel</label>
+        <input type="number" id="char-level" value="1" min="1" max="20">
+      </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="form-section">
+      <h4>📊 Estadísticas</h4>
+      <div class="stat-inputs">
+        <div class="stat-input-group">
+          <label>Fuerza</label>
+          <input type="number" id="char-fuerza" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-fuerza">+0</span>
+        </div>
+        <div class="stat-input-group">
+          <label>Destreza</label>
+          <input type="number" id="char-destreza" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-destreza">+0</span>
+        </div>
+        <div class="stat-input-group">
+          <label>Constitución</label>
+          <input type="number" id="char-constitucion" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-constitucion">+0</span>
+        </div>
+        <div class="stat-input-group">
+          <label>Inteligencia</label>
+          <input type="number" id="char-inteligencia" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-inteligencia">+0</span>
+        </div>
+        <div class="stat-input-group">
+          <label>Sabiduría</label>
+          <input type="number" id="char-sabiduria" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-sabiduria">+0</span>
+        </div>
+        <div class="stat-input-group">
+          <label>Carisma</label>
+          <input type="number" id="char-carisma" value="10" min="1" max="30" oninput="UI.updateStatMods()">
+          <span class="stat-mod-display" id="mod-carisma">+0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Combate -->
+    <div class="form-section">
+      <h4>⚔️ Estadísticas de Combate</h4>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>HP Máximo</label>
+          <input type="number" id="char-maxhp" value="10" min="1">
+        </div>
+        <div class="form-group">
+          <label>Clase de Armadura (CA)</label>
+          <input type="number" id="char-ca" value="10" min="1">
+        </div>
+        <div class="form-group">
+          <label>Movimiento (casillas/turno)</label>
+          <input type="number" id="char-mov" value="6" min="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Habilidades -->
+    <div class="form-section">
+      <h4>✨ Habilidades Asignadas</h4>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <select id="char-ability-sel" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px;border-radius:6px;">
+          <option value="">Agregar habilidad...</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="UI.addCharAbility()">➕</button>
+      </div>
+      <div id="char-ability-list" style="display:flex;flex-wrap:wrap;gap:6px;">
+        <p class="empty-state">Sin habilidades asignadas.</p>
+      </div>
+    </div>
+
+    <!-- Trasfondo -->
+    <div class="form-group">
+      <label>Trasfondo / Historia</label>
+      <textarea id="char-bg" placeholder="Historia del personaje, motivaciones, secretos..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeCharacterModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="UI.saveCharacter()">💾 Guardar Personaje</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - MONSTRUO
+     ============================================================ -->
+<div id="modal-monster" class="modal-overlay">
+  <div class="modal" style="max-width:750px;">
+    <div class="modal-header">
+      <h2 id="monster-modal-title">Nuevo Monstruo</h2>
+      <button class="btn-icon" onclick="UI.closeMonsterModal()">✕</button>
+    </div>
+    <input type="hidden" id="monster-id-hidden">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="monster-name" placeholder="ej: Dragón Rojo">
+      </div>
+      <div class="form-group">
+        <label>Icono (emoji)</label>
+        <input type="text" id="monster-icon" value="👹" maxlength="4" style="text-align:center;font-size:1.5rem;">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="monster-type">
+          <option value="besta">Besta</option>
+          <option value="humanoide">Humanoide</option>
+          <option value="muerto-viviente">Muerto Viviente</option>
+          <option value="dragon">Dragón</option>
+          <option value="gigante">Gigante</option>
+          <option value="aberracion">Aberración</option>
+          <option value="fiend">Fiend</option>
+          <option value="elemental">Elemental</option>
+          <option value="planta">Planta</option>
+          <option value="demonio">Demonio</option>
+          <option value="celestial">Celestial</option>
+          <option value="construccion">Construcción</option>
+          <option value="hada">Hada</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nivel de Desafío (CR)</label>
+        <input type="number" id="monster-cr" value="1" min="0" max="30" step="0.25">
+      </div>
+      <div class="form-group">
+        <label>HP Máximo</label>
+        <input type="number" id="monster-hp" value="20" min="1">
+      </div>
+      <div class="form-group">
+        <label>Clase de Armadura (CA)</label>
+        <input type="number" id="monster-ca" value="12" min="1">
+      </div>
+      <div class="form-group">
+        <label>Movimiento (casillas)</label>
+        <input type="number" id="monster-mov" value="6" min="0">
+      </div>
+      <div class="form-group">
+        <label>Ataque (dados de daño)</label>
+        <input type="text" id="monster-ataque" value="1d6" placeholder="ej: 2d8+4">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>📊 Estadísticas</h4>
+      <div class="stat-inputs">
+        <div class="stat-input-group"><label>Fuerza</label><input type="number" id="monster-fuerza" value="10" min="1" max="30"></div>
+        <div class="stat-input-group"><label>Destreza</label><input type="number" id="monster-destreza" value="10" min="1" max="30"></div>
+        <div class="stat-input-group"><label>Constitución</label><input type="number" id="monster-constitucion" value="10" min="1" max="30"></div>
+        <div class="stat-input-group"><label>Inteligencia</label><input type="number" id="monster-inteligencia" value="10" min="1" max="30"></div>
+        <div class="stat-input-group"><label>Sabiduría</label><input type="number" id="monster-sabiduria" value="10" min="1" max="30"></div>
+        <div class="stat-input-group"><label>Carisma</label><input type="number" id="monster-carisma" value="10" min="1" max="30"></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>✨ Habilidades</h4>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <select id="monster-ability-sel" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px;border-radius:6px;">
+          <option value="">Agregar habilidad...</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="UI.addMonsterAbility()">➕</button>
+      </div>
+      <div id="monster-ability-list" style="display:flex;flex-wrap:wrap;gap:6px;">
+        <p class="empty-state">Sin habilidades.</p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Descripción / Acciones especiales</label>
+      <textarea id="monster-desc" placeholder="Describe al monstruo, sus acciones, habilidades especiales..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeMonsterModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="UI.saveMonster()">💾 Guardar Monstruo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - OBJETO
+     ============================================================ -->
+<div id="modal-item" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="item-modal-title">Nuevo Objeto</h2>
+      <button class="btn-icon" onclick="UI.closeItemModal()">✕</button>
+    </div>
+    <input type="hidden" id="item-id-hidden">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="item-name" placeholder="ej: Espada del Rayo">
+      </div>
+      <div class="form-group">
+        <label>Icono (emoji)</label>
+        <input type="text" id="item-icon" value="💎" maxlength="4" style="text-align:center;font-size:1.5rem;">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="item-type">
+          <option value="objeto">Objeto</option>
+          <option value="arma">Arma</option>
+          <option value="armadura">Armadura</option>
+          <option value="pocion">Poción</option>
+          <option value="scroll">Pergamino</option>
+          <option value="cofre">Cofre del Tesoro</option>
+          <option value="trampa">Trampa</option>
+          <option value="reliquia">Reliquia</option>
+          <option value="moneda">Monedas</option>
+          <option value="clave">Llave / Acceso</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rareza</label>
+        <select id="item-rarity">
+          <option value="comun">Común</option>
+          <option value="infrecuente">Infrecuente</option>
+          <option value="raro">Raro</option>
+          <option value="muyraro">Muy Raro</option>
+          <option value="legendario">Legendario</option>
+          <option value="artefacto">Artefacto</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor (piezas de oro)</label>
+        <input type="number" id="item-value" value="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Efecto mecánico</label>
+        <input type="text" id="item-effect" placeholder="ej: +1d6 daño fuego, +2 CA...">
+      </div>
+      <div class="form-group form-full">
+        <label>Descripción</label>
+        <textarea id="item-desc" placeholder="Descripción del objeto, su historia, propiedades mágicas..."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeItemModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="UI.saveItem()">💾 Guardar Objeto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - ATAQUE / USAR HABILIDAD
+     ============================================================ -->
+<div id="modal-attack" class="modal-overlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h2>⚔️ Acción de Combate</h2>
+      <button class="btn-icon" onclick="UI.closeAttackModal()">✕</button>
+    </div>
+    <input type="hidden" id="attack-attacker-id">
+
+    <div style="margin-bottom:14px;">
+      <p style="color:var(--text-secondary);font-size:0.9rem;">Atacante: <strong id="attack-attacker-name" style="color:var(--gold)"></strong></p>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Objetivo</label>
+      <select id="attack-target-sel">
+        <option value="">Seleccionar objetivo...</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Acción</label>
+      <select id="attack-ability-sel">
+        <option value="">⚔️ Ataque básico</option>
+      </select>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeAttackModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="UI.executeAttack()">⚔️ ¡Atacar!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL - MULTIJUGADOR ONLINE
+     ============================================================ -->
+<div id="modal-online" class="modal-overlay">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <h2>🌐 Multijugador Online</h2>
+      <button class="btn-icon" onclick="Network.closeOnlineModal()">✕</button>
+    </div>
+    <div id="online-modal-body">
+      <!-- Generado dinámicamente por Network.renderOnlineModal() -->
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script src="js/peerjs.min.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/gameState.js"></script>
+<script src="js/abilities.js"></script>
+<script src="js/board.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/dmEngine.js"></script>
+<script src="js/network.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/demoData.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
